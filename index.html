@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="灵活打卡">
+<title>灵活打卡 · 可编辑时间 · 跨设备同步</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f5f7; color: #1d1d1f; display: flex; justify-content: center;
+  align-items: flex-start; min-height: 100vh; padding: 20px;
+  zoom: 2;  /* 全局放大2倍 */
+}
+.container {
+  width: 100%; max-width: 420px; background: #ffffff; border-radius: 24px;
+  padding: 28px 20px 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  position: relative;
+}
+.sync-status {
+  text-align: center; font-size: 13px; color: #8e8e93; margin-bottom: 12px;
+}
+.date-picker {
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  margin-bottom: 24px;
+}
+.date-picker button {
+  background: none; border: none; font-size: 20px; cursor: pointer; color: #007aff;
+  padding: 8px;
+}
+.date-display {
+  font-size: 18px; font-weight: 600; min-width: 120px; text-align: center;
+  cursor: pointer; 
+  padding: 4px 8px; border-radius: 8px; transition: background 0.2s;
+}
+.date-display:active { background: #f0f0f5; }
+.total-box {
+  text-align: center; margin-bottom: 32px;
+}
+.total-label {
+  font-size: 14px; color: #86868b; letter-spacing: 0.5px;
+}
+.total-time {
+  font-size: 40px; font-weight: 700; color: #1d1d1f; margin-top: 4px;
+}
+.timer-box {
+  text-align: center; margin-bottom: 28px;
+}
+.timer-display {
+  font-size: 32px; font-weight: 600; color: #007aff; margin-bottom: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.action-btn {
+  background: #007aff; color: white; border: none; border-radius: 30px;
+  padding: 16px 48px; font-size: 18px; font-weight: 600; cursor: pointer;
+  transition: background 0.2s; width: 100%; max-width: 220px;
+}
+.action-btn:active { background: #005bbf; }
+.stop-btn { background: #ff3b30; }
+.stop-btn:active { background: #cc2f25; }
+.record-section {
+  margin-top: 20px; border-top: 1px solid #e5e5ea; padding-top: 20px;
+}
+.record-item {
+  padding: 12px 0; border-bottom: 1px solid #f0f0f5;
+}
+.record-header {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.record-time {
+  font-size: 16px; color: #3a3a3c;
+  display: flex; align-items: center; gap: 4px;
+}
+.record-duration {
+  font-size: 16px; font-weight: 600; color: #1d1d1f;
+  display: flex; align-items: center; gap: 8px;
+}
+.delete-btn, .edit-time-btn, .edit-note-btn {
+  background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px;
+}
+.delete-btn { color: #ff3b30; }
+.edit-time-btn { color: #007aff; margin-left: 4px; }
+.edit-note-btn { color: #007aff; font-size: 13px; }
+.note-text {
+  font-size: 14px; color: #6e6e73; margin-top: 4px;
+  display: flex; align-items: center; gap: 4px;
+}
+.empty-state {
+  text-align: center; color: #aeaeb2; padding: 30px 0; font-size: 15px;
+}
+.footer-note {
+  color: #86868b; font-size: 13px; text-align: center; margin-top: 20px;
+}
+
+/* 弹窗通用遮罩 */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4); display: none; justify-content: center;
+  align-items: center; z-index: 100;
+}
+.modal-overlay.active { display: flex; }
+
+/* 月历弹窗 */
+.calendar-modal {
+  background: white; border-radius: 20px; padding: 20px;
+  width: 90%; max-width: 340px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+/* 备注弹窗 */
+.note-box {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  width: 85%;
+  max-width: 320px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.note-box h3 {
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+.note-box input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d1d6;
+  border-radius: 10px;
+  font-size: 16px;
+  margin-bottom: 16px;
+  outline: none;
+}
+.note-box input:focus {
+  border-color: #007aff;
+}
+.note-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.note-actions button {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* 时间编辑弹窗 */
+.time-edit-modal {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  width: 90%;
+  max-width: 340px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.time-edit-modal h3 { margin-bottom: 16px; font-size: 18px; }
+.time-edit-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.time-edit-row label { font-size: 16px; }
+.time-edit-row input[type="time"] {
+  padding: 8px; border: 1px solid #d1d1d6; border-radius: 10px;
+  font-size: 16px; width: 130px;
+}
+.time-edit-actions {
+  display: flex; gap: 10px; justify-content: flex-end;
+  margin-top: 8px;
+}
+.time-edit-actions button {
+  padding: 10px 20px; border-radius: 10px; border: none;
+  font-size: 16px; cursor: pointer;
+}
+.close-time-edit {
+  display: block; width: 100%; margin-top: 16px; padding: 12px;
+  background: #f2f2f7; border: none; border-radius: 12px;
+  font-size: 16px; cursor: pointer; text-align: center;
+}
+.btn-secondary { background: #f2f2f7; color: #1d1d1f; }
+.btn-primary { background: #007aff; color: white; }
+
+/* 月历内部样式 */
+.calendar-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.calendar-month-year {
+  font-size: 18px; font-weight: 600;
+}
+.calendar-nav {
+  display: flex; gap: 16px; align-items: center;
+}
+.calendar-nav button {
+  background: none; border: none; font-size: 20px; color: #007aff;
+  cursor: pointer; padding: 4px 8px;
+}
+.weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  text-align: center; font-size: 13px; color: #8e8e93; margin-bottom: 8px;
+}
+.days-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px; text-align: center;
+}
+.day-cell {
+  aspect-ratio: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; border-radius: 12px;
+  font-size: 16px; cursor: pointer; position: relative;
+  transition: background 0.2s;
+}
+.day-cell:active { background: #f2f2f7; }
+.day-cell.other-month { color: #c7c7cc; }
+.day-cell.today { font-weight: 700; color: #007aff; }
+.day-cell.selected { background: #007aff; color: white; }
+
+/* 有记录的日期加浅绿色背景 */
+.day-cell.has-records {
+  background-color: #eaf7ea;
+}
+.day-cell.selected.has-records {
+  background-color: #007aff;
+  color: white;
+}
+.day-hours {
+  font-size: 12px; color: #6e6e73; margin-top: 2px;
+}
+.day-cell.selected .day-hours { color: white; }
+.month-total {
+  text-align: center; margin-top: 16px; font-size: 16px;
+  font-weight: 600; color: #1d1d1f;
+}
+.close-calendar {
+  display: block; width: 100%; margin-top: 16px; padding: 12px;
+  background: #f2f2f7; border: none; border-radius: 12px;
+  font-size: 16px; cursor: pointer; text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="sync-status" id="syncStatus">数据加载中...</div>
+  <div class="date-picker">
+    <button id="prevDay">◀</button>
+    <span class="date-display" id="dateDisplay">今天</span>
+    <button id="nextDay">▶</button>
+  </div>
+
+  <div class="total-box">
+    <div class="total-label">今日总工时</div>
+    <div class="total-time" id="totalDisplay">0小时0分钟</div>
+  </div>
+
+  <div class="timer-box">
+    <div class="timer-display" id="timerDisplay" style="display:none;">00:00:00</div>
+    <button class="action-btn" id="actionBtn">开始工作</button>
+  </div>
+
+  <div class="record-section" id="recordList"></div>
+
+  <div class="footer-note">锁屏不影响计时 · 点日期看月历 · Gitee同步</div>
+</div>
+
+<!-- 月历模态 -->
+<div class="modal-overlay" id="calendarModal">
+  <div class="calendar-modal">
+    <div class="calendar-header">
+      <span class="calendar-month-year" id="calMonthYear"></span>
+      <div class="calendar-nav">
+        <button id="calPrev">◀</button>
+        <button id="calNext">▶</button>
+        <button id="calToday" style="margin-left:8px; font-size:16px; background:none; border:none; color:#007aff; cursor:pointer;">今天</button>
+      </div>
+    </div>
+    <div class="weekdays">
+      <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+    </div>
+    <div class="days-grid" id="daysGrid"></div>
+    <div class="month-total" id="monthTotal">本月合计：0小时</div>
+    <button class="close-calendar" id="closeCalendar">关闭</button>
+  </div>
+</div>
+
+<!-- 备注弹窗 -->
+<div class="modal-overlay note-modal" id="noteModal">
+  <div class="note-box">
+    <h3>添加备注</h3>
+    <input type="text" id="noteInput" placeholder="例如：做了海报设计" maxlength="60">
+    <div class="note-actions">
+      <button class="btn-secondary" id="skipNote">跳过</button>
+      <button class="btn-primary" id="saveNote">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 时间编辑弹窗 -->
+<div class="modal-overlay" id="timeEditModal">
+  <div class="time-edit-modal">
+    <h3>编辑时间</h3>
+    <div class="time-edit-row">
+      <label>开始</label>
+      <input type="time" id="editStartTime">
+    </div>
+    <div class="time-edit-row">
+      <label>结束</label>
+      <input type="time" id="editEndTime">
+    </div>
+    <div class="time-edit-actions">
+      <button class="btn-secondary" id="cancelTimeEdit">取消</button>
+      <button class="btn-primary" id="saveTimeEdit">保存</button>
+    </div>
+    <button class="close-time-edit" id="closeTimeEditBtn">关闭</button>
+  </div>
+</div>
+
+<script>
+(async function() {
+  // ================== Gitee 配置（请修改为你的信息） ==================
+  const GITEE_USER = 'mr-linbuzaizhe';      // 你的用户名
+  const GITEE_REPO = 'worklogs';           // 你的仓库名
+  const GITEE_TOKEN = 'cf15a273d714795cac0e67b179f5d216';      // 你的令牌
+  // =================================================================
+
+  const DATA_FILE = 'worklog.json';
+  const API_BASE = `https://gitee.com/api/v5/repos/${GITEE_USER}/${GITEE_REPO}`;
+
+  // Gitee API 封装
+  async function giteeRequest(method, path, body = null) {
+    const url = `${API_BASE}${path}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `token ${GITEE_TOKEN}`
+    };
+    const options = { method, headers };
+    if (body) options.body = JSON.stringify(body);
+    const res = await fetch(url, options);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `请求失败: ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function fetchWorkLogs() {
+    try {
+      const data = await giteeRequest('GET', `/contents/${DATA_FILE}`);
+      return JSON.parse(atob(data.content));
+    } catch (e) { return {}; }
+  }
+
+  async function saveWorkLogs(logs) {
+    const content = JSON.stringify(logs, null, 2);
+    const encoded = btoa(unescape(encodeURIComponent(content)));
+    let sha = null;
+    try {
+      const data = await giteeRequest('GET', `/contents/${DATA_FILE}`);
+      sha = data.sha;
+    } catch (e) {}
+    const body = { content: encoded, message: '更新打卡数据', branch: 'master' };
+    if (sha) body.sha = sha;
+    await giteeRequest(sha ? 'PUT' : 'POST', `/contents/${DATA_FILE}`, body);
+  }
+
+  let workLogs = {};
+  let currentDateStr = getTodayStr();
+  let timerInterval = null;
+  let startTime = null;
+  let calYear, calMonth;
+  let isSaving = false;
+
+  // DOM 元素
+  const dateDisplay = document.getElementById('dateDisplay');
+  const totalDisplay = document.getElementById('totalDisplay');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const actionBtn = document.getElementById('actionBtn');
+  const recordListEl = document.getElementById('recordList');
+  const syncStatus = document.getElementById('syncStatus');
+  const prevDayBtn = document.getElementById('prevDay');
+  const nextDayBtn = document.getElementById('nextDay');
+
+  const calendarModal = document.getElementById('calendarModal');
+  const calMonthYear = document.getElementById('calMonthYear');
+  const daysGrid = document.getElementById('daysGrid');
+  const monthTotalEl = document.getElementById('monthTotal');
+  const calPrevBtn = document.getElementById('calPrev');
+  const calNextBtn = document.getElementById('calNext');
+  const closeCalendarBtn = document.getElementById('closeCalendar');
+  const calTodayBtn = document.getElementById('calToday');
+
+  const noteModal = document.getElementById('noteModal');
+  const noteInput = document.getElementById('noteInput');
+  const skipNoteBtn = document.getElementById('skipNote');
+  const saveNoteBtn = document.getElementById('saveNote');
+  let pendingNoteCallback = null;
+
+  const timeEditModal = document.getElementById('timeEditModal');
+  const editStartInput = document.getElementById('editStartTime');
+  const editEndInput = document.getElementById('editEndTime');
+  const cancelTimeBtn = document.getElementById('cancelTimeEdit');
+  const saveTimeBtn = document.getElementById('saveTimeEdit');
+  const closeTimeEditBtn = document.getElementById('closeTimeEditBtn');
+  let editingRecordIndex = null;
+  let editingDateStr = null;
+
+  // 工具函数
+  function getTodayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  function formatTime(ts) {
+    const d = new Date(ts);
+    return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+
+  function formatDuration(ms) {
+    if (ms < 0) ms = 0;
+    const totalMinutes = Math.floor(ms / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}小时${minutes}分钟`;
+  }
+
+  function formatShortHours(ms) {
+    if (ms <= 0) return '';
+    return (ms / 3600000).toFixed(1) + 'h';
+  }
+
+  function formatHMS(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    return String(hrs).padStart(2,'0') + ':' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+  }
+
+  function getDayLogs(dateStr) {
+    return workLogs[dateStr] || [];
+  }
+
+  function setDayLogs(dateStr, logs) {
+    workLogs[dateStr] = logs;
+  }
+
+  function calcTotalDuration(logs) {
+    return logs.reduce((sum, entry) => sum + (entry.end - entry.start), 0);
+  }
+
+  // 同步到 Gitee
+  async function syncToCloud() {
+    if (isSaving) return;
+    isSaving = true;
+    syncStatus.textContent = '保存中...';
+    try {
+      await saveWorkLogs(workLogs);
+      syncStatus.textContent = '✓ 已同步';
+    } catch (e) {
+      console.error(e);
+      syncStatus.textContent = '同步失败，请检查网络或令牌';
+    }
+    isSaving = false;
+  }
+
+  async function saveOngoingSession(start) {
+    workLogs.__ongoing_session = { start };
+    await syncToCloud();
+  }
+
+  async function clearOngoingSession() {
+    delete workLogs.__ongoing_session;
+    await syncToCloud();
+  }
+
+  async function loadFromCloud() {
+    syncStatus.textContent = '加载数据...';
+    try {
+      workLogs = await fetchWorkLogs();
+      syncStatus.textContent = '✓ 数据已就绪';
+    } catch (e) {
+      console.error(e);
+      syncStatus.textContent = '加载失败，使用缓存数据';
+    }
+  }
+
+  // 渲染主界面
+  function render() {
+    const logs = getDayLogs(currentDateStr);
+    const totalMs = calcTotalDuration(logs);
+    totalDisplay.textContent = formatDuration(totalMs);
+
+    if (logs.length === 0) {
+      recordListEl.innerHTML = '<div class="empty-state">暂无打卡记录</div>';
+    } else {
+      let html = '';
+      logs.forEach((entry, idx) => {
+        const duration = formatDuration(entry.end - entry.start);
+        const noteHtml = entry.note
+          ? `<div class="note-text">📝 ${escapeHtml(entry.note)} <button class="edit-note-btn" data-index="${idx}">编辑</button></div>`
+          : `<div class="note-text"><button class="edit-note-btn" data-index="${idx}">添加备注</button></div>`;
+        html += `
+          <div class="record-item">
+            <div class="record-header">
+              <span class="record-time">
+                ${formatTime(entry.start)} - ${formatTime(entry.end)}
+                <button class="edit-time-btn" data-index="${idx}">✏️</button>
+              </span>
+              <span class="record-duration">
+                ${duration}
+                <button class="delete-btn" data-index="${idx}">✕</button>
+              </span>
+            </div>
+            ${noteHtml}
+          </div>`;
+      });
+      recordListEl.innerHTML = html;
+
+      // 绑定事件
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-index'), 10);
+          deleteRecord(idx);
+        });
+      });
+      document.querySelectorAll('.edit-note-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-index'), 10);
+          openNoteModal(idx);
+        });
+      });
+      document.querySelectorAll('.edit-time-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-index'), 10);
+          openTimeEditModal(idx);
+        });
+      });
+    }
+
+    if (currentDateStr === getTodayStr()) {
+      dateDisplay.textContent = '今天 ' + currentDateStr;
+    } else {
+      dateDisplay.textContent = currentDateStr;
+    }
+  }
+
+  function escapeHtml(text) {
+    const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+    return text.replace(/[&<>"']/g, m=>map[m]);
+  }
+
+  // 备注弹窗
+  function openNoteModal(index) {
+    const logs = getDayLogs(currentDateStr);
+    const currentNote = logs[index] ? (logs[index].note || '') : '';
+    noteInput.value = currentNote;
+    noteModal.classList.add('active');
+    noteInput.focus();
+    pendingNoteCallback = async (note) => {
+      if (logs[index]) logs[index].note = note;
+      setDayLogs(currentDateStr, logs);
+      noteModal.classList.remove('active');
+      await syncToCloud();
+      render();
+    };
+  }
+
+  function closeNoteModal() {
+    noteModal.classList.remove('active');
+    pendingNoteCallback = null;
+  }
+
+  skipNoteBtn.addEventListener('click', () => {
+    if (pendingNoteCallback) pendingNoteCallback(noteInput.value.trim() || '');
+    closeNoteModal();
+  });
+  saveNoteBtn.addEventListener('click', () => {
+    if (pendingNoteCallback) pendingNoteCallback(noteInput.value.trim());
+    closeNoteModal();
+  });
+  noteModal.addEventListener('click', (e) => {
+    if (e.target === noteModal) closeNoteModal();
+  });
+
+  // 时间编辑弹窗
+  function openTimeEditModal(index) {
+    const logs = getDayLogs(currentDateStr);
+    if (!logs[index]) return;
+    editingRecordIndex = index;
+    editingDateStr = currentDateStr;
+    const entry = logs[index];
+    editStartInput.value = formatTime(entry.start);
+    editEndInput.value = formatTime(entry.end);
+    timeEditModal.classList.add('active');
+  }
+
+  function closeTimeEditModal() {
+    timeEditModal.classList.remove('active');
+    editingRecordIndex = null;
+    editingDateStr = null;
+  }
+
+  async function saveTimeEdit() {
+    if (editingRecordIndex === null || !editingDateStr) return;
+    const logs = getDayLogs(editingDateStr);
+    const entry = logs[editingRecordIndex];
+    if (!entry) return;
+
+    const startStr = editStartInput.value;
+    const endStr = editEndInput.value;
+    if (!startStr || !endStr) {
+      alert('请填写开始和结束时间');
+      return;
+    }
+    if (startStr >= endStr) {
+      alert('结束时间必须晚于开始时间');
+      return;
+    }
+
+    const datePart = editingDateStr;
+    const startDateTime = new Date(`${datePart}T${startStr}:00`);
+    const endDateTime = new Date(`${datePart}T${endStr}:00`);
+    const now = new Date();
+
+    if (startDateTime > now || endDateTime > now) {
+      alert('时间不能晚于当前时间');
+      return;
+    }
+
+    entry.start = startDateTime.getTime();
+    entry.end = endDateTime.getTime();
+    logs.sort((a, b) => a.start - b.start);
+    setDayLogs(editingDateStr, logs);
+
+    await syncToCloud();
+    closeTimeEditModal();
+    render();
+  }
+
+  cancelTimeBtn.addEventListener('click', closeTimeEditModal);
+  closeTimeEditBtn.addEventListener('click', closeTimeEditModal);
+  saveTimeBtn.addEventListener('click', saveTimeEdit);
+  timeEditModal.addEventListener('click', (e) => {
+    if (e.target === timeEditModal) closeTimeEditModal();
+  });
+
+  // 开始/停止
+  async function startWork() {
+    if (startTime) return;
+    startTime = Date.now();
+    await saveOngoingSession(startTime);
+    actionBtn.textContent = '停止工作';
+    actionBtn.classList.add('stop-btn');
+    timerDisplay.style.display = 'block';
+    updateTimerDisplay();
+    timerInterval = setInterval(updateTimerDisplay, 200);
+  }
+
+  async function stopWork(note = '') {
+    if (!startTime) return;
+    clearInterval(timerInterval);
+    timerInterval = null;
+    const endTime = Date.now();
+    if (endTime - startTime > 0) {
+      const logs = getDayLogs(currentDateStr);
+      logs.push({ start: startTime, end: endTime, note });
+      logs.sort((a, b) => a.start - b.start);
+      setDayLogs(currentDateStr, logs);
+    }
+    await clearOngoingSession();
+    startTime = null;
+    actionBtn.textContent = '开始工作';
+    actionBtn.classList.remove('stop-btn');
+    timerDisplay.style.display = 'none';
+    render();
+  }
+
+  function updateTimerDisplay() {
+    if (!startTime) return;
+    timerDisplay.textContent = formatHMS(Date.now() - startTime);
+  }
+
+  async function changeDate(offset) {
+    if (startTime) {
+      alert('请先停止当前计时再切换日期');
+      return;
+    }
+    const parts = currentDateStr.split('-');
+    let d = new Date(parts[0], parts[1]-1, parts[2]);
+    d.setDate(d.getDate() + offset);
+    const newStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    if (newStr > getTodayStr()) {
+      alert('不能选择未来日期');
+      return;
+    }
+    currentDateStr = newStr;
+    render();
+  }
+
+  async function deleteRecord(index) {
+    const logs = getDayLogs(currentDateStr);
+    if (index >= 0 && index < logs.length) {
+      logs.splice(index, 1);
+      setDayLogs(currentDateStr, logs);
+      await syncToCloud();
+      render();
+    }
+  }
+
+  // 月历
+  function openCalendar() {
+    const parts = currentDateStr.split('-');
+    calYear = parseInt(parts[0]);
+    calMonth = parseInt(parts[1]);
+    renderCalendar();
+    calendarModal.classList.add('active');
+  }
+
+  function closeCalendar() {
+    calendarModal.classList.remove('active');
+  }
+
+  function renderCalendar() {
+    calMonthYear.textContent = calYear + '年 ' + calMonth + '月';
+    const monthPrefix = calYear + '-' + String(calMonth).padStart(2,'0');
+    const dayHoursMap = {};
+    let monthTotalMs = 0;
+    for (const dateStr in workLogs) {
+      if (dateStr.startsWith(monthPrefix)) {
+        const ms = calcTotalDuration(workLogs[dateStr]);
+        dayHoursMap[dateStr] = ms;
+        monthTotalMs += ms;
+      }
+    }
+    monthTotalEl.textContent = '本月合计：' + formatDuration(monthTotalMs);
+
+    const firstDay = new Date(calYear, calMonth-1, 1);
+    const lastDay = new Date(calYear, calMonth, 0);
+    const startDayOfWeek = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+
+    let html = '';
+    for (let i = 0; i < startDayOfWeek; i++) {
+      html += '<div class="day-cell other-month"></div>';
+    }
+    const todayStr = getTodayStr();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = calYear + '-' + String(calMonth).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+      const isToday = (dateStr === todayStr);
+      const isSelected = (dateStr === currentDateStr);
+      const hasRecords = dayHoursMap[dateStr] > 0;
+      const hoursText = hasRecords ? formatShortHours(dayHoursMap[dateStr]) : '';
+
+      let cellClass = 'day-cell';
+      if (isToday) cellClass += ' today';
+      if (isSelected) cellClass += ' selected';
+      if (hasRecords) cellClass += ' has-records';
+
+      html += `<div class="${cellClass}" data-date="${dateStr}">
+        <span>${day}</span>
+        ${hoursText ? `<span class="day-hours">${hoursText}</span>` : ''}
+      </div>`;
+    }
+    daysGrid.innerHTML = html;
+
+    document.querySelectorAll('.day-cell[data-date]').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const newDate = cell.getAttribute('data-date');
+        if (newDate > todayStr) {
+          alert('不能选择未来日期');
+          return;
+        }
+        if (startTime) {
+          alert('请先停止当前计时再切换日期');
+          return;
+        }
+        currentDateStr = newDate;
+        render();
+        closeCalendar();
+      });
+    });
+  }
+
+  calPrevBtn.addEventListener('click', () => {
+    calMonth--;
+    if (calMonth < 1) { calMonth = 12; calYear--; }
+    renderCalendar();
+  });
+  calNextBtn.addEventListener('click', () => {
+    calMonth++;
+    if (calMonth > 12) { calMonth = 1; calYear++; }
+    const today = new Date();
+    const maxDate = new Date(today.getFullYear(), today.getMonth()+1, 0);
+    if (new Date(calYear, calMonth-1, 1) > maxDate) {
+      calMonth--; if (calMonth===0) { calMonth=12; calYear--; }
+      alert('不能查看未来月份');
+      return;
+    }
+    renderCalendar();
+  });
+  closeCalendarBtn.addEventListener('click', closeCalendar);
+  calendarModal.addEventListener('click', (e) => {
+    if (e.target === calendarModal) closeCalendar();
+  });
+
+  // “今天”按钮事件（增加计时检查）
+  calTodayBtn.addEventListener('click', () => {
+    if (startTime) {
+      alert('请先停止当前计时再切换日期');
+      return;
+    }
+    const today = new Date();
+    calYear = today.getFullYear();
+    calMonth = today.getMonth() + 1;
+    currentDateStr = getTodayStr();
+    closeCalendar();
+    render();
+  });
+
+  dateDisplay.addEventListener('click', openCalendar);
+
+  // 主按钮点击
+  actionBtn.addEventListener('click', async () => {
+    if (startTime) {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      clearInterval(timerInterval);
+      timerInterval = null;
+
+      noteInput.value = '';
+      noteModal.classList.add('active');
+      noteInput.focus();
+
+      pendingNoteCallback = async (note) => {
+        if (duration > 0) {
+          const logs = getDayLogs(currentDateStr);
+          logs.push({ start: startTime, end: endTime, note });
+          logs.sort((a,b) => a.start-b.start);
+          setDayLogs(currentDateStr, logs);
+        }
+        await clearOngoingSession();
+        startTime = null;
+        actionBtn.textContent = '开始工作';
+        actionBtn.classList.remove('stop-btn');
+        timerDisplay.style.display = 'none';
+        noteModal.classList.remove('active');
+        pendingNoteCallback = null;
+        render();
+      };
+    } else {
+      if (currentDateStr !== getTodayStr()) {
+        alert('只能为今天添加打卡记录');
+        return;
+      }
+      startWork();
+    }
+  });
+
+  prevDayBtn.addEventListener('click', () => changeDate(-1));
+  nextDayBtn.addEventListener('click', () => changeDate(1));
+
+  // 初始化
+  async function restoreSession() {
+    await loadFromCloud();
+    if (workLogs.__ongoing_session && workLogs.__ongoing_session.start) {
+      const sessionStart = workLogs.__ongoing_session.start;
+      if (sessionStart <= Date.now()) {
+        startTime = sessionStart;
+        actionBtn.textContent = '停止工作';
+        actionBtn.classList.add('stop-btn');
+        timerDisplay.style.display = 'block';
+        updateTimerDisplay();
+        timerInterval = setInterval(updateTimerDisplay, 200);
+        syncStatus.textContent = '✓ 继续上一次计时中...';
+      } else {
+        delete workLogs.__ongoing_session;
+        await syncToCloud();
+      }
+    }
+    render();
+  }
+
+  // 定时同步
+  setInterval(async () => {
+    try {
+      const newLogs = await fetchWorkLogs();
+      if (startTime && (!newLogs.__ongoing_session || newLogs.__ongoing_session.start !== startTime)) {
+        clearInterval(timerInterval);
+        const endTime = Date.now();
+        const logs = getDayLogs(currentDateStr);
+        logs.push({ start: startTime, end: endTime, note: '' });
+        setDayLogs(currentDateStr, logs);
+        startTime = null;
+        actionBtn.textContent = '开始工作';
+        actionBtn.classList.remove('stop-btn');
+        timerDisplay.style.display = 'none';
+        workLogs = newLogs;
+        render();
+        syncStatus.textContent = '✓ 其他设备已结束计时';
+        await saveWorkLogs(workLogs);
+      } else if (!startTime && JSON.stringify(newLogs) !== JSON.stringify(workLogs)) {
+        workLogs = newLogs;
+        render();
+      }
+    } catch (e) {}
+  }, 30000);
+
+  await restoreSession();
+})();
+</script>
+</body>
+</html>
