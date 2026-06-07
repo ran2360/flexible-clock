@@ -118,10 +118,10 @@ body {
 .month-total { text-align: center; margin-top: 16px; font-size: 16px; font-weight: 600; color: #1d1d1f; }
 .close-calendar { display: block; width: 100%; margin-top: 16px; padding: 12px; background: #f2f2f7; border: none; border-radius: 12px; font-size: 16px; cursor: pointer; text-align: center; }
 
-/* 令牌输入弹窗 */
+/* 令牌输入弹窗 - 默认隐藏 */
 .token-modal {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6); display: flex; justify-content: center;
+  background: rgba(0,0,0,0.6); display: none; justify-content: center;
   align-items: center; z-index: 200;
 }
 .token-box {
@@ -231,7 +231,6 @@ body {
   const DATA_FILE = 'worklog.json';
   let GITEE_TOKEN = localStorage.getItem('gitee_token') || '';
 
-  // API 基础地址
   function getApiBase() {
     return `https://gitee.com/api/v5/repos/${GITEE_USER}/${GITEE_REPO}`;
   }
@@ -244,16 +243,15 @@ body {
     document.getElementById('tokenModal').style.display = 'none';
   }
 
-  // 等待用户输入令牌（返回 Promise，成功 resolve）
+  // 等待用户输入令牌（使用可靠的 onclick 方式）
   function waitForToken() {
     return new Promise((resolve) => {
       showTokenModal();
-      const saveBtn = document.getElementById('saveTokenBtn');
       const inputEl = document.getElementById('tokenInput');
-      // 移除之前绑定的事件，避免重复
-      saveBtn.replaceWith(saveBtn.cloneNode(true));
-      const newSaveBtn = document.getElementById('saveTokenBtn');
-      newSaveBtn.addEventListener('click', () => {
+      const saveBtn = document.getElementById('saveTokenBtn');
+      // 移除之前可能绑定的 onclick（如果有）
+      saveBtn.onclick = null;
+      saveBtn.onclick = () => {
         const token = inputEl.value.trim();
         if (token) {
           GITEE_TOKEN = token;
@@ -263,11 +261,11 @@ body {
         } else {
           alert('令牌不能为空');
         }
-      });
+      };
     });
   }
 
-  // 统一的 Gitee 请求函数
+  // Gitee API 封装
   async function giteeRequest(method, path, body = null) {
     let url = `${getApiBase()}${path}`;
     let headers = {
@@ -278,13 +276,11 @@ body {
     if (body) options.body = JSON.stringify(body);
 
     let res = await fetch(url, options);
-    // 令牌无效或过期
     if (res.status === 401) {
       localStorage.removeItem('gitee_token');
       GITEE_TOKEN = '';
-      // 重新要求输入令牌
+      alert('令牌无效或已过期，请重新输入');
       await waitForToken();
-      // 令牌更新后，重试请求（此时 GITEE_TOKEN 已有新值）
       headers['Authorization'] = `token ${GITEE_TOKEN}`;
       options.headers = headers;
       res = await fetch(url, options);
@@ -296,7 +292,6 @@ body {
     return res.json();
   }
 
-  // 从 Gitee 拉取数据
   async function fetchWorkLogs() {
     try {
       const data = await giteeRequest('GET', `/contents/${DATA_FILE}`);
@@ -304,7 +299,6 @@ body {
     } catch (e) { return {}; }
   }
 
-  // 保存数据到 Gitee
   async function saveWorkLogs(logs) {
     const content = JSON.stringify(logs, null, 2);
     const encoded = btoa(unescape(encodeURIComponent(content)));
@@ -817,8 +811,7 @@ body {
 
   // 初始化
   async function restoreSession() {
-    // 隐藏令牌弹窗（初始已显示，先隐藏）
-    hideTokenModal();
+    // 如果没有令牌，则弹出输入框并等待
     if (!GITEE_TOKEN) {
       await waitForToken();
     }
@@ -866,7 +859,6 @@ body {
     } catch (e) {}
   }, 30000);
 
-  // 启动
   await restoreSession();
 })();
 </script>
