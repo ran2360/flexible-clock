@@ -13,13 +13,11 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f5f5f7; color: #1d1d1f; display: flex; justify-content: center;
   align-items: flex-start; min-height: 100vh; padding: 20px;
-  /* 默认不缩放，手机使用 */
+  /* 默认不缩放（手机） */
 }
-/* 屏幕宽度大于 768px 时（电脑），才放大2倍 */
+/* 电脑端放大2倍 */
 @media (min-width: 768px) {
-  body {
-    zoom: 2;
-  }
+  body { zoom: 2; }
 }
 .container {
   width: 100%; max-width: 420px; background: #ffffff; border-radius: 24px;
@@ -43,18 +41,10 @@ body {
   padding: 4px 8px; border-radius: 8px; transition: background 0.2s;
 }
 .date-display:active { background: #f0f0f5; }
-.total-box {
-  text-align: center; margin-bottom: 32px;
-}
-.total-label {
-  font-size: 14px; color: #86868b; letter-spacing: 0.5px;
-}
-.total-time {
-  font-size: 40px; font-weight: 700; color: #1d1d1f; margin-top: 4px;
-}
-.timer-box {
-  text-align: center; margin-bottom: 28px;
-}
+.total-box { text-align: center; margin-bottom: 32px; }
+.total-label { font-size: 14px; color: #86868b; letter-spacing: 0.5px; }
+.total-time { font-size: 40px; font-weight: 700; color: #1d1d1f; margin-top: 4px; }
+.timer-box { text-align: center; margin-bottom: 28px; }
 .timer-display {
   font-size: 32px; font-weight: 600; color: #007aff; margin-bottom: 20px;
   font-variant-numeric: tabular-nums;
@@ -70,179 +60,63 @@ body {
 .record-section {
   margin-top: 20px; border-top: 1px solid #e5e5ea; padding-top: 20px;
 }
-.record-item {
-  padding: 12px 0; border-bottom: 1px solid #f0f0f5;
-}
-.record-header {
-  display: flex; justify-content: space-between; align-items: center;
-}
-.record-time {
-  font-size: 16px; color: #3a3a3c;
-  display: flex; align-items: center; gap: 4px;
-}
-.record-duration {
-  font-size: 16px; font-weight: 600; color: #1d1d1f;
-  display: flex; align-items: center; gap: 8px;
-}
-.delete-btn, .edit-time-btn, .edit-note-btn {
-  background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px;
-}
+.record-item { padding: 12px 0; border-bottom: 1px solid #f0f0f5; }
+.record-header { display: flex; justify-content: space-between; align-items: center; }
+.record-time { font-size: 16px; color: #3a3a3c; display: flex; align-items: center; gap: 4px; }
+.record-duration { font-size: 16px; font-weight: 600; color: #1d1d1f; display: flex; align-items: center; gap: 8px; }
+.delete-btn, .edit-time-btn, .edit-note-btn { background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px; }
 .delete-btn { color: #ff3b30; }
 .edit-time-btn { color: #007aff; margin-left: 4px; }
 .edit-note-btn { color: #007aff; font-size: 13px; }
-.note-text {
-  font-size: 14px; color: #6e6e73; margin-top: 4px;
-  display: flex; align-items: center; gap: 4px;
-}
-.empty-state {
-  text-align: center; color: #aeaeb2; padding: 30px 0; font-size: 15px;
-}
-.footer-note {
-  color: #86868b; font-size: 13px; text-align: center; margin-top: 20px;
-}
+.note-text { font-size: 14px; color: #6e6e73; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.empty-state { text-align: center; color: #aeaeb2; padding: 30px 0; font-size: 15px; }
+.footer-note { color: #86868b; font-size: 13px; text-align: center; margin-top: 20px; }
 
-/* 弹窗通用遮罩 */
-.modal-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4); display: none; justify-content: center;
-  align-items: center; z-index: 100;
-}
+/* 弹窗通用 */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 100; }
 .modal-overlay.active { display: flex; }
 
 /* 月历弹窗 */
-.calendar-modal {
-  background: white; border-radius: 20px; padding: 20px;
-  width: 90%; max-width: 340px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
+.calendar-modal { background: white; border-radius: 20px; padding: 20px; width: 90%; max-width: 340px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
 
 /* 备注弹窗 */
-.note-box {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  width: 85%;
-  max-width: 320px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
-.note-box h3 {
-  margin-bottom: 12px;
-  font-size: 18px;
-}
-.note-box input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #d1d1d6;
-  border-radius: 10px;
-  font-size: 16px;
-  margin-bottom: 16px;
-  outline: none;
-}
-.note-box input:focus {
-  border-color: #007aff;
-}
-.note-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-.note-actions button {
-  padding: 10px 20px;
-  border-radius: 10px;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-}
+.note-box { background: white; border-radius: 20px; padding: 24px; width: 85%; max-width: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.note-box h3 { margin-bottom: 12px; font-size: 18px; }
+.note-box input { width: 100%; padding: 12px; border: 1px solid #d1d1d6; border-radius: 10px; font-size: 16px; margin-bottom: 16px; outline: none; }
+.note-box input:focus { border-color: #007aff; }
+.note-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.note-actions button { padding: 10px 20px; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; }
 
 /* 时间编辑弹窗 */
-.time-edit-modal {
-  background: white;
-  border-radius: 20px;
-  padding: 24px;
-  width: 90%;
-  max-width: 340px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
+.time-edit-modal { background: white; border-radius: 20px; padding: 24px; width: 90%; max-width: 340px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
 .time-edit-modal h3 { margin-bottom: 16px; font-size: 18px; }
-.time-edit-row {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 12px;
-}
+.time-edit-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .time-edit-row label { font-size: 16px; }
-.time-edit-row input[type="time"] {
-  padding: 8px; border: 1px solid #d1d1d6; border-radius: 10px;
-  font-size: 16px; width: 130px;
-}
-.time-edit-actions {
-  display: flex; gap: 10px; justify-content: flex-end;
-  margin-top: 8px;
-}
-.time-edit-actions button {
-  padding: 10px 20px; border-radius: 10px; border: none;
-  font-size: 16px; cursor: pointer;
-}
-.close-time-edit {
-  display: block; width: 100%; margin-top: 16px; padding: 12px;
-  background: #f2f2f7; border: none; border-radius: 12px;
-  font-size: 16px; cursor: pointer; text-align: center;
-}
+.time-edit-row input[type="time"] { padding: 8px; border: 1px solid #d1d1d6; border-radius: 10px; font-size: 16px; width: 130px; }
+.time-edit-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+.time-edit-actions button { padding: 10px 20px; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; }
+.close-time-edit { display: block; width: 100%; margin-top: 16px; padding: 12px; background: #f2f2f7; border: none; border-radius: 12px; font-size: 16px; cursor: pointer; text-align: center; }
 .btn-secondary { background: #f2f2f7; color: #1d1d1f; }
 .btn-primary { background: #007aff; color: white; }
 
-/* 月历内部样式 */
-.calendar-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 12px;
-}
-.calendar-month-year {
-  font-size: 18px; font-weight: 600;
-}
-.calendar-nav {
-  display: flex; gap: 16px; align-items: center;
-}
-.calendar-nav button {
-  background: none; border: none; font-size: 20px; color: #007aff;
-  cursor: pointer; padding: 4px 8px;
-}
-.weekdays {
-  display: grid; grid-template-columns: repeat(7, 1fr);
-  text-align: center; font-size: 13px; color: #8e8e93; margin-bottom: 8px;
-}
-.days-grid {
-  display: grid; grid-template-columns: repeat(7, 1fr);
-  gap: 4px; text-align: center;
-}
-.day-cell {
-  aspect-ratio: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; border-radius: 12px;
-  font-size: 16px; cursor: pointer; position: relative;
-  transition: background 0.2s;
-}
+/* 月历内部 */
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.calendar-month-year { font-size: 18px; font-weight: 600; }
+.calendar-nav { display: flex; gap: 16px; align-items: center; }
+.calendar-nav button { background: none; border: none; font-size: 20px; color: #007aff; cursor: pointer; padding: 4px 8px; }
+.weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 13px; color: #8e8e93; margin-bottom: 8px; }
+.days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.day-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; font-size: 16px; cursor: pointer; position: relative; transition: background 0.2s; }
 .day-cell:active { background: #f2f2f7; }
 .day-cell.other-month { color: #c7c7cc; }
 .day-cell.today { font-weight: 700; color: #007aff; }
 .day-cell.selected { background: #007aff; color: white; }
-
-/* 有记录的日期加浅绿色背景 */
-.day-cell.has-records {
-  background-color: #eaf7ea;
-}
-.day-cell.selected.has-records {
-  background-color: #007aff;
-  color: white;
-}
-.day-hours {
-  font-size: 12px; color: #6e6e73; margin-top: 2px;
-}
+.day-cell.has-records { background-color: #eaf7ea; }
+.day-cell.selected.has-records { background-color: #007aff; color: white; }
+.day-hours { font-size: 12px; color: #6e6e73; margin-top: 2px; }
 .day-cell.selected .day-hours { color: white; }
-.month-total {
-  text-align: center; margin-top: 16px; font-size: 16px;
-  font-weight: 600; color: #1d1d1f;
-}
-.close-calendar {
-  display: block; width: 100%; margin-top: 16px; padding: 12px;
-  background: #f2f2f7; border: none; border-radius: 12px;
-  font-size: 16px; cursor: pointer; text-align: center;
-}
+.month-total { text-align: center; margin-top: 16px; font-size: 16px; font-weight: 600; color: #1d1d1f; }
+.close-calendar { display: block; width: 100%; margin-top: 16px; padding: 12px; background: #f2f2f7; border: none; border-radius: 12px; font-size: 16px; cursor: pointer; text-align: center; }
 
 /* 令牌输入弹窗 */
 .token-modal {
@@ -274,19 +148,15 @@ body {
     <span class="date-display" id="dateDisplay">今天</span>
     <button id="nextDay">▶</button>
   </div>
-
   <div class="total-box">
     <div class="total-label">今日总工时</div>
     <div class="total-time" id="totalDisplay">0小时0分钟</div>
   </div>
-
   <div class="timer-box">
     <div class="timer-display" id="timerDisplay" style="display:none;">00:00:00</div>
     <button class="action-btn" id="actionBtn">开始工作</button>
   </div>
-
   <div class="record-section" id="recordList"></div>
-
   <div class="footer-note">锁屏不影响计时 · 点日期看月历 · Gitee同步</div>
 </div>
 
@@ -353,7 +223,7 @@ body {
 
 <script>
 (async function() {
-  // ================== Gitee 配置（修改这里） ==================
+  // ================== Gitee 配置（请修改为你的信息） ==================
   const GITEE_USER = 'mr-linbuzaizhe';   // 你的 Gitee 用户名
   const GITEE_REPO = 'worklogs';        // 你的仓库名
   // ============================================================
@@ -361,62 +231,72 @@ body {
   const DATA_FILE = 'worklog.json';
   let GITEE_TOKEN = localStorage.getItem('gitee_token') || '';
 
+  // API 基础地址
   function getApiBase() {
     return `https://gitee.com/api/v5/repos/${GITEE_USER}/${GITEE_REPO}`;
   }
 
-  // 令牌验证与输入
+  // 显示/隐藏令牌弹窗
   function showTokenModal() {
     document.getElementById('tokenModal').style.display = 'flex';
   }
-
   function hideTokenModal() {
     document.getElementById('tokenModal').style.display = 'none';
   }
 
-  async function ensureToken() {
-    if (!GITEE_TOKEN) {
+  // 等待用户输入令牌（返回 Promise，成功 resolve）
+  function waitForToken() {
+    return new Promise((resolve) => {
       showTokenModal();
-      return new Promise(resolve => {
-        document.getElementById('saveTokenBtn').onclick = () => {
-          const token = document.getElementById('tokenInput').value.trim();
-          if (token) {
-            GITEE_TOKEN = token;
-            localStorage.setItem('gitee_token', token);
-            hideTokenModal();
-            resolve();
-          } else {
-            alert('令牌不能为空');
-          }
-        };
+      const saveBtn = document.getElementById('saveTokenBtn');
+      const inputEl = document.getElementById('tokenInput');
+      // 移除之前绑定的事件，避免重复
+      saveBtn.replaceWith(saveBtn.cloneNode(true));
+      const newSaveBtn = document.getElementById('saveTokenBtn');
+      newSaveBtn.addEventListener('click', () => {
+        const token = inputEl.value.trim();
+        if (token) {
+          GITEE_TOKEN = token;
+          localStorage.setItem('gitee_token', token);
+          hideTokenModal();
+          resolve();
+        } else {
+          alert('令牌不能为空');
+        }
       });
-    }
+    });
   }
 
-  // Gitee API 封装
+  // 统一的 Gitee 请求函数
   async function giteeRequest(method, path, body = null) {
-    await ensureToken();
-    const url = `${getApiBase()}${path}`;
-    const headers = {
+    let url = `${getApiBase()}${path}`;
+    let headers = {
       'Content-Type': 'application/json',
       'Authorization': `token ${GITEE_TOKEN}`
     };
-    const options = { method, headers };
+    let options = { method, headers };
     if (body) options.body = JSON.stringify(body);
-    const res = await fetch(url, options);
+
+    let res = await fetch(url, options);
+    // 令牌无效或过期
+    if (res.status === 401) {
+      localStorage.removeItem('gitee_token');
+      GITEE_TOKEN = '';
+      // 重新要求输入令牌
+      await waitForToken();
+      // 令牌更新后，重试请求（此时 GITEE_TOKEN 已有新值）
+      headers['Authorization'] = `token ${GITEE_TOKEN}`;
+      options.headers = headers;
+      res = await fetch(url, options);
+    }
     if (!res.ok) {
-      if (res.status === 401) {
-        localStorage.removeItem('gitee_token');
-        GITEE_TOKEN = '';
-        alert('令牌无效或已过期，请重新输入');
-        return giteeRequest(method, path, body); // 递归重试
-      }
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || `请求失败: ${res.status}`);
     }
     return res.json();
   }
 
+  // 从 Gitee 拉取数据
   async function fetchWorkLogs() {
     try {
       const data = await giteeRequest('GET', `/contents/${DATA_FILE}`);
@@ -424,6 +304,7 @@ body {
     } catch (e) { return {}; }
   }
 
+  // 保存数据到 Gitee
   async function saveWorkLogs(logs) {
     const content = JSON.stringify(logs, null, 2);
     const encoded = btoa(unescape(encodeURIComponent(content)));
@@ -880,7 +761,6 @@ body {
     if (e.target === calendarModal) closeCalendar();
   });
 
-  // “今天”按钮（带计时检查）
   calTodayBtn.addEventListener('click', () => {
     if (startTime) {
       alert('请先停止当前计时再切换日期');
@@ -896,7 +776,6 @@ body {
 
   dateDisplay.addEventListener('click', openCalendar);
 
-  // 主按钮点击
   actionBtn.addEventListener('click', async () => {
     if (startTime) {
       const endTime = Date.now();
@@ -936,8 +815,13 @@ body {
   prevDayBtn.addEventListener('click', () => changeDate(-1));
   nextDayBtn.addEventListener('click', () => changeDate(1));
 
-  // 初始化：加载数据，恢复进行中会话
+  // 初始化
   async function restoreSession() {
+    // 隐藏令牌弹窗（初始已显示，先隐藏）
+    hideTokenModal();
+    if (!GITEE_TOKEN) {
+      await waitForToken();
+    }
     await loadFromCloud();
     if (workLogs.__ongoing_session && workLogs.__ongoing_session.start) {
       const sessionStart = workLogs.__ongoing_session.start;
@@ -982,7 +866,7 @@ body {
     } catch (e) {}
   }, 30000);
 
-  await ensureToken();      // 确保令牌存在后再进行后续加载
+  // 启动
   await restoreSession();
 })();
 </script>
