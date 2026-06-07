@@ -237,6 +237,27 @@ body {
   background: #f2f2f7; border: none; border-radius: 12px;
   font-size: 16px; cursor: pointer; text-align: center;
 }
+
+/* 令牌输入弹窗 */
+.token-modal {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6); display: flex; justify-content: center;
+  align-items: center; z-index: 200;
+}
+.token-box {
+  background: white; border-radius: 20px; padding: 24px;
+  width: 85%; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+.token-box h3 { margin-bottom: 12px; font-size: 18px; }
+.token-box input {
+  width: 100%; padding: 12px; border: 1px solid #d1d1d6;
+  border-radius: 10px; font-size: 16px; margin-bottom: 16px; outline: none;
+}
+.token-box input:focus { border-color: #007aff; }
+.token-box button {
+  width: 100%; padding: 14px; background: #007aff; color: white;
+  border: none; border-radius: 12px; font-size: 16px; cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -315,20 +336,61 @@ body {
   </div>
 </div>
 
+<!-- 令牌输入弹窗 -->
+<div class="token-modal" id="tokenModal">
+  <div class="token-box">
+    <h3>请输入 Gitee 私人令牌</h3>
+    <input type="password" id="tokenInput" placeholder="粘贴你的令牌...">
+    <button id="saveTokenBtn">保存并同步</button>
+  </div>
+</div>
+
 <script>
 (async function() {
-  // ================== Gitee 配置（请修改为你的信息） ==================
-  const GITEE_USER = 'mr-linbuzaizhe';      // 你的用户名
-  const GITEE_REPO = 'worklogs';           // 你的仓库名
-  const GITEE_TOKEN = 'cf15a273d714795cac0e67b179f5d216';      // 你的令牌
-  // =================================================================
+  // ================== Gitee 配置（修改这里） ==================
+  const GITEE_USER = 'mr-linbuzaizhe';   // 你的 Gitee 用户名
+  const GITEE_REPO = 'worklogs';        // 你的仓库名
+  // ============================================================
 
   const DATA_FILE = 'worklog.json';
-  const API_BASE = `https://gitee.com/api/v5/repos/${GITEE_USER}/${GITEE_REPO}`;
+  let GITEE_TOKEN = localStorage.getItem('gitee_token') || '';
+
+  function getApiBase() {
+    return `https://gitee.com/api/v5/repos/${GITEE_USER}/${GITEE_REPO}`;
+  }
+
+  // 令牌验证与输入
+  function showTokenModal() {
+    document.getElementById('tokenModal').style.display = 'flex';
+  }
+
+  function hideTokenModal() {
+    document.getElementById('tokenModal').style.display = 'none';
+  }
+
+  async function ensureToken() {
+    if (!GITEE_TOKEN) {
+      showTokenModal();
+      return new Promise(resolve => {
+        document.getElementById('saveTokenBtn').onclick = () => {
+          const token = document.getElementById('tokenInput').value.trim();
+          if (token) {
+            GITEE_TOKEN = token;
+            localStorage.setItem('gitee_token', token);
+            hideTokenModal();
+            resolve();
+          } else {
+            alert('令牌不能为空');
+          }
+        };
+      });
+    }
+  }
 
   // Gitee API 封装
   async function giteeRequest(method, path, body = null) {
-    const url = `${API_BASE}${path}`;
+    await ensureToken();
+    const url = `${getApiBase()}${path}`;
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `token ${GITEE_TOKEN}`
@@ -337,6 +399,12 @@ body {
     if (body) options.body = JSON.stringify(body);
     const res = await fetch(url, options);
     if (!res.ok) {
+      if (res.status === 401) {
+        localStorage.removeItem('gitee_token');
+        GITEE_TOKEN = '';
+        alert('令牌无效或已过期，请重新输入');
+        return giteeRequest(method, path, body); // 递归重试
+      }
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || `请求失败: ${res.status}`);
     }
@@ -448,7 +516,7 @@ body {
     return logs.reduce((sum, entry) => sum + (entry.end - entry.start), 0);
   }
 
-  // 同步到 Gitee
+  // 同步云端
   async function syncToCloud() {
     if (isSaving) return;
     isSaving = true;
@@ -806,7 +874,7 @@ body {
     if (e.target === calendarModal) closeCalendar();
   });
 
-  // “今天”按钮事件（增加计时检查）
+  // “今天”按钮（带计时检查）
   calTodayBtn.addEventListener('click', () => {
     if (startTime) {
       alert('请先停止当前计时再切换日期');
@@ -862,7 +930,7 @@ body {
   prevDayBtn.addEventListener('click', () => changeDate(-1));
   nextDayBtn.addEventListener('click', () => changeDate(1));
 
-  // 初始化
+  // 初始化：加载数据，恢复进行中会话
   async function restoreSession() {
     await loadFromCloud();
     if (workLogs.__ongoing_session && workLogs.__ongoing_session.start) {
@@ -908,6 +976,7 @@ body {
     } catch (e) {}
   }, 30000);
 
+  await ensureToken();      // 确保令牌存在后再进行后续加载
   await restoreSession();
 })();
 </script>
