@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="灵活打卡">
-<title>灵活打卡 · 可编辑时间 · 跨设备同步</title>
+<title>灵活打卡 · 跨天自动分割 · 跨设备同步</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -157,7 +157,7 @@ body {
     <button class="action-btn" id="actionBtn">开始工作</button>
   </div>
   <div class="record-section" id="recordList"></div>
-  <div class="footer-note">锁屏不影响计时 · 点日期看月历 · Gitee同步</div>
+  <div class="footer-note">锁屏不影响计时 · 点日期看月历 · 自动分割跨天记录</div>
 </div>
 
 <!-- 月历模态 -->
@@ -223,7 +223,7 @@ body {
 
 <script>
 (async function() {
-  // ================== Gitee 配置（请修改为你的信息） ==================
+  // ================== 请修改为你的 Gitee 信息 ==================
   const GITEE_USER = 'mr-linbuzaizhe';   // 你的 Gitee 用户名
   const GITEE_REPO = 'worklogs';        // 你的仓库名
   // ============================================================
@@ -243,14 +243,11 @@ body {
     document.getElementById('tokenModal').style.display = 'none';
   }
 
-  // 等待用户输入令牌（使用可靠的 onclick 方式）
   function waitForToken() {
     return new Promise((resolve) => {
       showTokenModal();
       const inputEl = document.getElementById('tokenInput');
       const saveBtn = document.getElementById('saveTokenBtn');
-      // 移除之前可能绑定的 onclick（如果有）
-      saveBtn.onclick = null;
       saveBtn.onclick = () => {
         const token = inputEl.value.trim();
         if (token) {
@@ -809,26 +806,56 @@ body {
   prevDayBtn.addEventListener('click', () => changeDate(-1));
   nextDayBtn.addEventListener('click', () => changeDate(1));
 
-  // 初始化
+  // ========== 核心：跨天自动分割 ==========
   async function restoreSession() {
-    // 如果没有令牌，则弹出输入框并等待
+    // 确保令牌
     if (!GITEE_TOKEN) {
       await waitForToken();
     }
     await loadFromCloud();
+
     if (workLogs.__ongoing_session && workLogs.__ongoing_session.start) {
       const sessionStart = workLogs.__ongoing_session.start;
-      if (sessionStart <= Date.now()) {
-        startTime = sessionStart;
-        actionBtn.textContent = '停止工作';
-        actionBtn.classList.add('stop-btn');
-        timerDisplay.style.display = 'block';
-        updateTimerDisplay();
-        timerInterval = setInterval(updateTimerDisplay, 200);
-        syncStatus.textContent = '✓ 继续上一次计时中...';
-      } else {
+      const startDateStr = new Date(sessionStart).toISOString().split('T')[0];
+      const todayStr = getTodayStr();
+
+      if (startDateStr < todayStr) {
+        // 跨天处理：自动结束到开始日期的23:59:59
+        const endOfThatDay = new Date(startDateStr + 'T23:59:59.999').getTime();
+        const record = { start: sessionStart, end: endOfThatDay, note: '' };
+        const logs = getDayLogs(startDateStr);
+        logs.push(record);
+        logs.sort((a, b) => a.start - b.start);
+        setDayLogs(startDateStr, logs);
+
+        // 清除进行中状态
         delete workLogs.__ongoing_session;
         await syncToCloud();
+
+        alert(`检测到${startDateStr}的计时未停止，已自动结束于当天 23:59。\n可切换到该日期，用 ✏️ 编辑结束时间。`);
+
+        // 清除本地计时状态（不自动继续）
+        if (timerInterval) clearInterval(timerInterval);
+        startTime = null;
+        actionBtn.textContent = '开始工作';
+        actionBtn.classList.remove('stop-btn');
+        timerDisplay.style.display = 'none';
+        syncStatus.textContent = '✓ 跨天记录已分割';
+      } else {
+        // 同一天内的进行中会话，正常恢复
+        if (sessionStart <= Date.now()) {
+          startTime = sessionStart;
+          actionBtn.textContent = '停止工作';
+          actionBtn.classList.add('stop-btn');
+          timerDisplay.style.display = 'block';
+          updateTimerDisplay();
+          timerInterval = setInterval(updateTimerDisplay, 200);
+          syncStatus.textContent = '✓ 继续上一次计时中...';
+        } else {
+          // 异常：开始时间在未来，清除
+          delete workLogs.__ongoing_session;
+          await syncToCloud();
+        }
       }
     }
     render();
