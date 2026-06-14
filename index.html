@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="灵活打卡">
-<title>灵活打卡 · 跨天自动分割 · 跨设备同步</title>
+<title>灵活打卡 · 手动添加 · 跨天分割 · 跨设备同步</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -41,9 +41,18 @@ body {
   padding: 4px 8px; border-radius: 8px; transition: background 0.2s;
 }
 .date-display:active { background: #f0f0f5; }
-.total-box { text-align: center; margin-bottom: 32px; }
+.total-box { text-align: center; margin-bottom: 24px; }
 .total-label { font-size: 14px; color: #86868b; letter-spacing: 0.5px; }
 .total-time { font-size: 40px; font-weight: 700; color: #1d1d1f; margin-top: 4px; }
+.add-manual-box {
+  text-align: center; margin-bottom: 28px;
+}
+.add-manual-btn {
+  background: none; border: 1px dashed #007aff; color: #007aff;
+  border-radius: 10px; padding: 10px 24px; font-size: 16px; cursor: pointer;
+  transition: background 0.2s;
+}
+.add-manual-btn:active { background: #f0f0f5; }
 .timer-box { text-align: center; margin-bottom: 28px; }
 .timer-display {
   font-size: 32px; font-weight: 600; color: #007aff; margin-bottom: 20px;
@@ -99,6 +108,18 @@ body {
 .btn-secondary { background: #f2f2f7; color: #1d1d1f; }
 .btn-primary { background: #007aff; color: white; }
 
+/* 手动添加弹窗 */
+.manual-modal { background: white; border-radius: 20px; padding: 24px; width: 90%; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.manual-modal h3 { margin-bottom: 16px; font-size: 18px; }
+.manual-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.manual-row label { font-size: 16px; }
+.manual-row input[type="date"], .manual-row input[type="time"] {
+  padding: 8px; border: 1px solid #d1d1d6; border-radius: 10px; font-size: 16px;
+  width: 150px;
+}
+.manual-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+.manual-actions button { padding: 10px 20px; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; }
+
 /* 月历内部 */
 .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .calendar-month-year { font-size: 18px; font-weight: 600; }
@@ -151,6 +172,9 @@ body {
   <div class="total-box">
     <div class="total-label">今日总工时</div>
     <div class="total-time" id="totalDisplay">0小时0分钟</div>
+  </div>
+  <div class="add-manual-box">
+    <button class="add-manual-btn" id="addManualBtn">+ 手动添加</button>
   </div>
   <div class="timer-box">
     <div class="timer-display" id="timerDisplay" style="display:none;">00:00:00</div>
@@ -212,6 +236,33 @@ body {
   </div>
 </div>
 
+<!-- 手动添加弹窗 -->
+<div class="modal-overlay" id="manualModal">
+  <div class="manual-modal">
+    <h3>手动添加记录</h3>
+    <div class="manual-row">
+      <label>日期</label>
+      <input type="date" id="manualDate">
+    </div>
+    <div class="manual-row">
+      <label>开始</label>
+      <input type="time" id="manualStart">
+    </div>
+    <div class="manual-row">
+      <label>结束</label>
+      <input type="time" id="manualEnd">
+    </div>
+    <div class="manual-row">
+      <label>备注</label>
+      <input type="text" id="manualNote" placeholder="可选">
+    </div>
+    <div class="manual-actions">
+      <button class="btn-secondary" id="cancelManual">取消</button>
+      <button class="btn-primary" id="saveManual">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- 令牌输入弹窗 -->
 <div class="token-modal" id="tokenModal">
   <div class="token-box">
@@ -235,7 +286,6 @@ body {
     return `https://gitee.com/api/v5/repos/${GITEE_USER}/${GITEE_REPO}`;
   }
 
-  // 显示/隐藏令牌弹窗
   function showTokenModal() {
     document.getElementById('tokenModal').style.display = 'flex';
   }
@@ -262,7 +312,6 @@ body {
     });
   }
 
-  // Gitee API 封装
   async function giteeRequest(method, path, body = null) {
     let url = `${getApiBase()}${path}`;
     let headers = {
@@ -349,6 +398,16 @@ body {
   const closeTimeEditBtn = document.getElementById('closeTimeEditBtn');
   let editingRecordIndex = null;
   let editingDateStr = null;
+
+  // 手动添加弹窗
+  const manualModal = document.getElementById('manualModal');
+  const manualDateInput = document.getElementById('manualDate');
+  const manualStartInput = document.getElementById('manualStart');
+  const manualEndInput = document.getElementById('manualEnd');
+  const manualNoteInput = document.getElementById('manualNote');
+  const cancelManualBtn = document.getElementById('cancelManual');
+  const saveManualBtn = document.getElementById('saveManual');
+  const addManualBtn = document.getElementById('addManualBtn');
 
   // 工具函数
   function getTodayStr() {
@@ -593,6 +652,81 @@ body {
     if (e.target === timeEditModal) closeTimeEditModal();
   });
 
+  // 手动添加逻辑
+  function openManualModal() {
+    // 默认值
+    manualDateInput.value = currentDateStr;
+    const now = new Date();
+    manualStartInput.value = '09:00';
+    manualEndInput.value = '12:00';
+    manualNoteInput.value = '';
+    manualModal.classList.add('active');
+  }
+
+  function closeManualModal() {
+    manualModal.classList.remove('active');
+  }
+
+  async function saveManual() {
+    const dateStr = manualDateInput.value;
+    const startTimeStr = manualStartInput.value;
+    const endTimeStr = manualEndInput.value;
+
+    if (!dateStr || !startTimeStr || !endTimeStr) {
+      alert('请填写完整信息');
+      return;
+    }
+    if (startTimeStr >= endTimeStr) {
+      alert('结束时间必须晚于开始时间');
+      return;
+    }
+
+    // 校验日期不能是未来
+    if (dateStr > getTodayStr()) {
+      alert('不能添加未来日期的记录');
+      return;
+    }
+
+    const startDateTime = new Date(`${dateStr}T${startTimeStr}:00`);
+    const endDateTime = new Date(`${dateStr}T${endTimeStr}:00`);
+    const now = new Date();
+
+    // 结束时间不能晚于当前时间（若添加的是今天，则不允许晚于现在）
+    if (endDateTime > now) {
+      alert('结束时间不能晚于当前时间');
+      return;
+    }
+
+    const newRecord = {
+      start: startDateTime.getTime(),
+      end: endDateTime.getTime(),
+      note: manualNoteInput.value.trim() || ''
+    };
+
+    const logs = getDayLogs(dateStr);
+    logs.push(newRecord);
+    logs.sort((a, b) => a.start - b.start);
+    setDayLogs(dateStr, logs);
+
+    await syncToCloud();
+    closeManualModal();
+
+    // 如果当前视图正好是该日期，则刷新列表
+    if (dateStr === currentDateStr) {
+      render();
+    } else {
+      // 如果不一致，给个提示
+      syncStatus.textContent = `已添加至 ${dateStr}`;
+    }
+  }
+
+  addManualBtn.addEventListener('click', openManualModal);
+  cancelManualBtn.addEventListener('click', closeManualModal);
+  saveManualBtn.addEventListener('click', saveManual);
+  manualModal.addEventListener('click', (e) => {
+    if (e.target === manualModal) closeManualModal();
+  });
+
   // 开始/停止
   async function startWork() {
     if (startTime) return;
@@ -806,9 +940,8 @@ body {
   prevDayBtn.addEventListener('click', () => changeDate(-1));
   nextDayBtn.addEventListener('click', () => changeDate(1));
 
-  // ========== 核心：跨天自动分割 ==========
+  // ========== 跨天自动分割 ==========
   async function restoreSession() {
-    // 确保令牌
     if (!GITEE_TOKEN) {
       await waitForToken();
     }
@@ -820,21 +953,17 @@ body {
       const todayStr = getTodayStr();
 
       if (startDateStr < todayStr) {
-        // 跨天处理：自动结束到开始日期的23:59:59
         const endOfThatDay = new Date(startDateStr + 'T23:59:59.999').getTime();
         const record = { start: sessionStart, end: endOfThatDay, note: '' };
         const logs = getDayLogs(startDateStr);
         logs.push(record);
         logs.sort((a, b) => a.start - b.start);
         setDayLogs(startDateStr, logs);
-
-        // 清除进行中状态
         delete workLogs.__ongoing_session;
         await syncToCloud();
 
         alert(`检测到${startDateStr}的计时未停止，已自动结束于当天 23:59。\n可切换到该日期，用 ✏️ 编辑结束时间。`);
 
-        // 清除本地计时状态（不自动继续）
         if (timerInterval) clearInterval(timerInterval);
         startTime = null;
         actionBtn.textContent = '开始工作';
@@ -842,7 +971,6 @@ body {
         timerDisplay.style.display = 'none';
         syncStatus.textContent = '✓ 跨天记录已分割';
       } else {
-        // 同一天内的进行中会话，正常恢复
         if (sessionStart <= Date.now()) {
           startTime = sessionStart;
           actionBtn.textContent = '停止工作';
@@ -852,7 +980,6 @@ body {
           timerInterval = setInterval(updateTimerDisplay, 200);
           syncStatus.textContent = '✓ 继续上一次计时中...';
         } else {
-          // 异常：开始时间在未来，清除
           delete workLogs.__ongoing_session;
           await syncToCloud();
         }
